@@ -56,25 +56,30 @@ func main() {
 	var unknownTvIndex = 200
 	var unknownRadioIndex = 1000
 	var unknownIndex = 1500
+	updateMap := make(map[int]int)
 	for _, channel := range channels {
-		var order int
 		if val, ok := channelOrderMap[channel.Name]; ok {
-			order = val
-		} else {
-			if channel.ServiceType == "SERVICE_TYPE_AUDIO_VIDEO" {
-				order = unknownTvIndex
-				unknownTvIndex++
-			} else if channel.ServiceType == "SERVICE_TYPE_AUDIO" {
-				order = unknownRadioIndex
-				unknownRadioIndex++
-			} else {
-				order = unknownIndex
-				unknownIndex++
+			_, hasAdded := updateMap[val]
+			if !hasAdded {
+				updateMap[val] = channel.Id
+				continue
 			}
 		}
+		if channel.ServiceType == "SERVICE_TYPE_AUDIO_VIDEO" {
+			updateMap[unknownTvIndex] = channel.Id
+			unknownTvIndex++
+		} else if channel.ServiceType == "SERVICE_TYPE_AUDIO" {
+			updateMap[unknownRadioIndex] = channel.Id
+			unknownRadioIndex++
+		} else {
+			updateMap[unknownIndex] = channel.Id
+			unknownIndex++
+		}
+	}
 
+	for order, id := range updateMap {
 		sqlStatement := `UPDATE channels SET display_number=? WHERE _id=?;`
-		_, err := db.Exec(sqlStatement, fmt.Sprintf("%d", order), channel.Id)
+		_, err := db.Exec(sqlStatement, fmt.Sprintf("%d", order), id)
 		if err != nil {
 			log.Fatalln(err)
 		}
